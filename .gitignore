@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/package/thunderstore/CheatDeath/CheatDeath.dll
+/package/thunderstore/CheatDeath.zip
