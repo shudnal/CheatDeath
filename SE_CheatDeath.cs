@@ -11,6 +11,11 @@ namespace CheatDeath
     {
         public const string statusEffectName = "CheatDeath";
         public static readonly int statusEffectHash = statusEffectName.GetStableHashCode();
+        
+        public const string vfx_CheatDeathName = "vfx_CheatDeath";
+        public static readonly int vfx_CheatDeathHash = vfx_CheatDeathName.GetStableHashCode();
+        
+        public static GameObject vfx_CheatDeath;
 
         [NonSerialized]
         public bool m_initialized = false;
@@ -62,6 +67,64 @@ namespace CheatDeath
                         m_time = Mathf.Max(0, m_ttl - (float)CooldownData.GetCooldown());
                     else
                         CooldownData.SetCooldown(m_ttl);
+
+                if (!string.IsNullOrEmpty(m_startMessage))
+                {
+                    m_character.Message(m_startMessageType, m_startMessage);
+                }
+
+                TriggerStartEffects();
+            }
+        }
+
+        public override void Setup(Character character)
+        {
+            m_character = character;
+        }
+
+        public override bool CanAdd(Character character)
+        {
+            return !character.GetSEMan().HaveStatusEffect(statusEffectHash);
+        }
+
+        public static void RegisterEffects()
+        {
+            if (!ZNetScene.instance)
+                return;
+
+            if (!(bool)vfx_CheatDeath)
+            {
+                WayStone waystone = Resources.FindObjectsOfTypeAll<WayStone>().FirstOrDefault();
+                if (waystone == null)
+                    return;
+
+                vfx_CheatDeath = CustomPrefabs.InitPrefabClone(ZNetScene.instance.GetPrefab("vfx_HealthUpgrade"), vfx_CheatDeathName);
+                vfx_CheatDeath.transform.localPosition = Vector3.zero;
+                for (int i = vfx_CheatDeath.transform.childCount - 1; i >= 0; i--)
+                {
+                    Transform child = vfx_CheatDeath.transform.GetChild(i);
+                    switch (child.name)
+                    {
+                        case "Particle System _expl":
+                        case "smoke _expl":
+                        case "trails _expl":
+                        case "sfx_expl":
+                            child.parent = null;
+                            UnityEngine.Object.Destroy(child.gameObject);
+                            break;
+                        case "Particle System":
+                        case "trails":
+                        case "smoke":
+                            child.localPosition -= new Vector3(0f, 1f, 0f);
+                            break;
+                    }
+                }
+            }
+
+            if ((bool)vfx_CheatDeath && !ZNetScene.instance.m_namedPrefabs.ContainsKey(vfx_CheatDeathHash))
+            {
+                ZNetScene.instance.m_prefabs.Add(vfx_CheatDeath);
+                ZNetScene.instance.m_namedPrefabs[vfx_CheatDeathHash] = vfx_CheatDeath;
             }
         }
 
@@ -119,6 +182,8 @@ namespace CheatDeath
         {
             public static void AddCustomStatusEffects(ObjectDB odb)
             {
+                RegisterEffects();
+
                 if (odb.m_StatusEffects.Count > 0)
                 {
                     StatusEffect softDeath = odb.m_StatusEffects.Find(se => se.name == "SoftDeath");
@@ -130,6 +195,21 @@ namespace CheatDeath
                         statusEffect.m_nameHash = statusEffectHash;
                         statusEffect.m_icon = softDeath.m_icon;
                         statusEffect.m_tooltip = "$tutorial_death_topic";
+
+                        statusEffect.m_startMessageType = MessageHud.MessageType.Center;
+                        statusEffect.m_startMessage = "$tutorial_death_topic";
+
+                        if (vfx_CheatDeath)
+                        {
+                            statusEffect.m_startEffects.m_effectPrefabs = statusEffect.m_startEffects.m_effectPrefabs.AddToArray(new EffectList.EffectData
+                            {
+                                m_prefab = vfx_CheatDeath,
+                                m_enabled = true,
+                                m_variant = -1,
+                                m_attach = true,
+                                m_scale = true
+                            });
+                        }
 
                         SetStatusEffectProperties(statusEffect);
 

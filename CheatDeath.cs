@@ -11,7 +11,7 @@ namespace CheatDeath
     {
         const string pluginID = "shudnal.CheatDeath";
         const string pluginName = "Cheat Death";
-        const string pluginVersion = "1.0.0";
+        const string pluginVersion = "1.0.1";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 
@@ -167,24 +167,22 @@ namespace CheatDeath
                 if (!modEnabled.Value)
                     return;
 
-                if (__instance.GetSEMan().HaveStatusEffect(SE_CheatDeath.statusEffectHash))
-                    return;
-
                 if (!__instance.IsPlayer() || !Player.m_localPlayer || __instance != Player.m_localPlayer)
                     return;
 
                 if (health > 0.1f)
                     return;
 
-                health = healToThreshold.Value ? GetHealthThresholdValue(__instance) : Mathf.Min(__instance.GetHealth(), GetHealthThresholdValue(__instance));
-
-                __instance.GetSEMan().AddStatusEffect(SE_CheatDeath.statusEffectHash);
-                __instance.Message(MessageHud.MessageType.Center, "$tutorial_death_topic");
+                if (__instance.GetSEMan().AddStatusEffect(SE_CheatDeath.statusEffectHash) != null)
+                    health = healToThreshold.Value ? GetHealthThresholdValue(__instance) : Mathf.Min(__instance.GetHealth(), GetHealthThresholdValue(__instance));
             }
         }
 
         private static void UpdateStatusEffectTime(StatusEffect statusEffect)
         {
+            if (statusEffect == null)
+                return;
+
             statusEffect.m_time = Mathf.Max(0, statusEffect.m_ttl - (float)CooldownData.GetCooldown());
             (statusEffect as SE_CheatDeath).m_initialized = true;
         }
@@ -219,7 +217,7 @@ namespace CheatDeath
                 if (!Player.m_localPlayer || Player.m_localPlayer != __instance)
                     return;
 
-                if (!CooldownData.IsOnCooldown() || Player.m_localPlayer.GetSEMan().HaveStatusEffect(SE_CheatDeath.statusEffectHash))
+                if (!CooldownData.IsOnCooldown())
                     return;
 
                 StatusEffect statusEffect = Player.m_localPlayer.GetSEMan().AddStatusEffect(SE_CheatDeath.statusEffectHash);
@@ -238,7 +236,7 @@ namespace CheatDeath
                 if (!Player.m_localPlayer || Player.m_localPlayer != __instance)
                     return;
 
-                if (!CooldownData.IsOnCooldown() || Player.m_localPlayer.GetSEMan().HaveStatusEffect(SE_CheatDeath.statusEffectHash))
+                if (!CooldownData.IsOnCooldown())
                     return;
 
                 StatusEffect statusEffect = Player.m_localPlayer.GetSEMan().AddStatusEffect(SE_CheatDeath.statusEffectHash);

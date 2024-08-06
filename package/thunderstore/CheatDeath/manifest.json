@@ -1,7 +1,7 @@
 {
-  "name": "CheatDeath",
-  "version_number": "1.0.0",
-  "website_url": "https://github.com/shudnal/CheatDeath",
-  "description": "Fatal attacks instead reduce you to 10% of your maximum health. For 10 sec afterward, you take 50-75% reduced damage. Cannot trigger more often than once per 10 min.",
-  "dependencies": ["denikson-BepInExPack_Valheim-5.4.2202"]
+    "name": "CheatDeath",
+    "version_number": "1.0.1",
+    "website_url": "https://github.com/shudnal/CheatDeath",
+    "description": "Fatal attacks instead reduce your health to set %. Afterwards you take reduced damage. Triggers once per 10 min. For hardcore or sloppy players.",
+    "dependencies": [ "denikson-BepInExPack_Valheim-5.4.2202" ]
 }

@@ -1,6 +1,5 @@
 # Cheat Death
-Fatal attacks instead reduce you to 10% of your maximum health. For 10 sec afterward, you take 50-75% reduced damage. Cannot trigger more often than once per 10 min.
-
+Fatal attacks instead reduce your health to set %. Afterwards you take reduced damage. Triggers once per 10 min. For hardcore or sloppy players.
 ## Features
 
 Fatal blow calculated as your health reaches 0 no matter what action caused the effect.
