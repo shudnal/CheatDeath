@@ -79,6 +79,8 @@ namespace CheatDeath
 
         public override void Setup(Character character)
         {
+            SetStatusEffectProperties(this);
+
             m_character = character;
         }
 
