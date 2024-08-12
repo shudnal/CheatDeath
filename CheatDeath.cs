@@ -2,6 +2,9 @@
 using BepInEx.Configuration;
 using HarmonyLib;
 using ServerSync;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 using UnityEngine;
 
 namespace CheatDeath
@@ -11,7 +14,7 @@ namespace CheatDeath
     {
         const string pluginID = "shudnal.CheatDeath";
         const string pluginName = "Cheat Death";
-        const string pluginVersion = "1.0.2";
+        const string pluginVersion = "1.0.3";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 
@@ -25,9 +28,12 @@ namespace CheatDeath
 
         internal static ConfigEntry<CooldownTime> cooldownTime;
         internal static ConfigEntry<int> cooldown;
+
         internal static ConfigEntry<float> protectionSeconds;
         internal static ConfigEntry<string> statusEffectLocalization;
         internal static ConfigEntry<bool> cleanseOnProc;
+        internal static ConfigEntry<string> statusEffectStartMessageServer;
+        internal static ConfigEntry<string> statusEffectStartMessageClient;
 
         internal static ConfigEntry<bool> healToThreshold;
         internal static ConfigEntry<float> healthThresholdPercent;
@@ -42,7 +48,7 @@ namespace CheatDeath
         internal static ConfigEntry<float> addMaxCarryWeight;
         internal static ConfigEntry<float> maxMaxFallSpeed;
         internal static ConfigEntry<float> fallDamageModifier;
-
+        
         public enum CooldownTime
         {
             WorldTime,
@@ -65,6 +71,10 @@ namespace CheatDeath
             _ = configSync.AddLockingConfigEntry(configLocked);
 
             Game.isModded = true;
+
+            LoadIcons();
+
+            CustomConfigs.Awake();
         }
 
         public void ConfigInit()
@@ -85,6 +95,10 @@ namespace CheatDeath
             protectionSeconds = config("Status effect - General", "Protection seconds", defaultValue: 10f, "Seconds of protection after activation");
             statusEffectLocalization = config("Status effect - General", "Name", defaultValue: "Cheat death", "Name of status effect");
             cleanseOnProc = config("Status effect - General", "Cleanse of DoT on proc", defaultValue: true, "Remove DoT effects on proc");
+            statusEffectStartMessageServer = config("Status effect - General", "Message on proc synced", defaultValue: "$tutorial_death_topic&&YOU DIED!.. But not yet.",
+                    new ConfigDescription("&& separated messages showing on effect proc which is synced from server", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings("&&") }));
+            statusEffectStartMessageClient = config("Status effect - General", "Message on proc local", defaultValue: "Did it hurt? I guess so...",
+            new ConfigDescription("&& separated messages showing on effect proc [Not Synced with Server]", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings("&&") }), false);
 
             protectionSeconds.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
             statusEffectLocalization.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
@@ -133,6 +147,40 @@ namespace CheatDeath
                     UpdateStatusEffectTime(Player.m_localPlayer.GetSEMan().GetStatusEffect(SE_CheatDeath.statusEffectHash));
 
             }, isCheat: true);
+        }
+        private void LoadIcons()
+        {
+            LoadIcon("CheatDeath.png", ref SE_CheatDeath.iconStatusEffect);
+        }
+
+        internal static void LoadIcon(string filename, ref Sprite icon)
+        {
+            Texture2D tex = new Texture2D(2, 2);
+            if (LoadTexture(filename, ref tex))
+                icon = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), Vector2.zero);
+        }
+
+        internal static bool LoadTexture(string filename, ref Texture2D tex)
+        {
+            string fileInConfigFolder = Path.Combine(Paths.PluginPath, filename);
+            if (File.Exists(fileInConfigFolder))
+            {
+                LogInfo($"Loaded image: {fileInConfigFolder}");
+                return tex.LoadImage(File.ReadAllBytes(fileInConfigFolder));
+            }
+
+            Assembly executingAssembly = Assembly.GetExecutingAssembly();
+
+            string name = executingAssembly.GetManifestResourceNames().Single(str => str.EndsWith(filename));
+
+            Stream resourceStream = executingAssembly.GetManifestResourceStream(name);
+
+            byte[] data = new byte[resourceStream.Length];
+            resourceStream.Read(data, 0, data.Length);
+
+            tex.name = Path.GetFileNameWithoutExtension(filename);
+
+            return tex.LoadImage(data, true);
         }
 
         public static void LogInfo(object data)

@@ -14,7 +14,9 @@ namespace CheatDeath
         
         public const string vfx_CheatDeathName = "vfx_CheatDeath";
         public static readonly int vfx_CheatDeathHash = vfx_CheatDeathName.GetStableHashCode();
-        
+
+        public static Sprite iconStatusEffect;
+
         public static GameObject vfx_CheatDeath;
 
         [NonSerialized]
@@ -70,7 +72,14 @@ namespace CheatDeath
 
                 if (!string.IsNullOrEmpty(m_startMessage))
                 {
-                    m_character.Message(m_startMessageType, m_startMessage);
+                    List<string> messages = new List<string>();
+                    messages.AddRange(statusEffectStartMessageServer.Value.Split(new string[] { "&&" }, StringSplitOptions.RemoveEmptyEntries));
+                    messages.AddRange(statusEffectStartMessageClient.Value.Split(new string[] { "&&" }, StringSplitOptions.RemoveEmptyEntries));
+
+                    if (messages.Count == 0)
+                        m_character.Message(m_startMessageType, m_startMessage);
+                    else
+                        m_character.Message(m_startMessageType, messages[UnityEngine.Random.Range(0, messages.Count)]);
                 }
 
                 TriggerStartEffects();
@@ -186,16 +195,14 @@ namespace CheatDeath
             {
                 RegisterEffects();
 
-                if (odb.m_StatusEffects.Count > 0)
+                if (odb?.m_StatusEffects.Count > 0)
                 {
-                    StatusEffect softDeath = odb.m_StatusEffects.Find(se => se.name == "SoftDeath");
-
-                    if (!odb.m_StatusEffects.Any(se => se.name == statusEffectName))
+                    if (!odb.m_StatusEffects.Any(se => se?.NameHash() == statusEffectHash))
                     {
                         SE_CheatDeath statusEffect = ScriptableObject.CreateInstance<SE_CheatDeath>();
                         statusEffect.name = statusEffectName;
                         statusEffect.m_nameHash = statusEffectHash;
-                        statusEffect.m_icon = softDeath.m_icon;
+                        statusEffect.m_icon = iconStatusEffect;
                         statusEffect.m_tooltip = "$tutorial_death_topic";
 
                         statusEffect.m_startMessageType = MessageHud.MessageType.Center;

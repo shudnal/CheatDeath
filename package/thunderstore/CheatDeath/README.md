@@ -10,6 +10,7 @@ You can configure:
 * ability to cleanse burning, poison and puke on effect proc
 * duration of protection
 * health threshold (percent or fixed amount) to which your hp will be saved/restored on proc
+* fatal blow message picked from config value
 
 Temporarty protection config:
 * damage modifiers type (resistant, very resistant, immune, etc.)
@@ -29,6 +30,10 @@ Cheat Death ability takes some time to recover. This time is tied to the world w
 There is console command `setcheatdeathcooldown [seconds]` to manually set cooldown.
 
 Cooldown is based on a world time by default. It could be changed to use global real time instead.
+
+## Icon replace
+
+Put file CheatDeath.png next to plugin main file CheatDeath.dll and it will be loaded as status effect icon instead of regular skull icon.
 
 ## Installation (manual)
 copy CheatDeath.dll to your BepInEx\Plugins\ folder.
