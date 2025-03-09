@@ -1,3 +1,7 @@
+# 1.0.4
+* patch 0.220.3
+* ServerSync updated
+
 # 1.0.3
 * fix for NRE on startup
 * status effect icon could be replaced by putting CheatDeath.png file next to plugin dll

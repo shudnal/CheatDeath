@@ -14,7 +14,7 @@ namespace CheatDeath
     {
         const string pluginID = "shudnal.CheatDeath";
         const string pluginName = "Cheat Death";
-        const string pluginVersion = "1.0.3";
+        const string pluginVersion = "1.0.4";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 
