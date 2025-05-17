@@ -22,6 +22,11 @@ namespace CheatDeath
             /// </summary>
             [UsedImplicitly]
             public System.Action<BepInEx.Configuration.ConfigEntryBase>? CustomDrawer;
+
+            /// <summary>
+            /// Should the setting be shown as a percentage (only applies to value range settings)
+            /// </summary>
+            public bool? ShowRangeAsPercent;
         }
 
         internal static object? configManager;

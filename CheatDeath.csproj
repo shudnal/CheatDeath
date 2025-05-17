@@ -44,9 +44,6 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\CheatDeath.png" />
-    <Content Include="Libs\ServerSync.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="0Harmony">

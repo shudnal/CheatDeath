@@ -12,9 +12,9 @@ namespace CheatDeath
     [BepInPlugin(pluginID, pluginName, pluginVersion)]
     public class CheatDeath : BaseUnityPlugin
     {
-        const string pluginID = "shudnal.CheatDeath";
-        const string pluginName = "Cheat Death";
-        const string pluginVersion = "1.0.4";
+        public const string pluginID = "shudnal.CheatDeath";
+        public const string pluginName = "Cheat Death";
+        public const string pluginVersion = "1.0.5";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 
@@ -34,6 +34,9 @@ namespace CheatDeath
         internal static ConfigEntry<bool> cleanseOnProc;
         internal static ConfigEntry<string> statusEffectStartMessageServer;
         internal static ConfigEntry<string> statusEffectStartMessageClient;
+        internal static ConfigEntry<float> chanceForReproc;
+        internal static ConfigEntry<string> reprocMessage;
+        internal static ConfigEntry<string> vfxOverride;
 
         internal static ConfigEntry<bool> healToThreshold;
         internal static ConfigEntry<float> healthThresholdPercent;
@@ -99,11 +102,17 @@ namespace CheatDeath
                     new ConfigDescription("&& separated messages showing on effect proc which is synced from server", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings("&&") }));
             statusEffectStartMessageClient = config("Status effect - General", "Message on proc local", defaultValue: "Did it hurt? I guess so...",
             new ConfigDescription("&& separated messages showing on effect proc [Not Synced with Server]", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings("&&") }), false);
+            chanceForReproc = config("Status effect - General", "Change for free proc", defaultValue: 0.05f, 
+                    new ConfigDescription("Chance for status effect to not going on cooldown on proc. Effect can also proc again while current effect is active.", 
+                    new AcceptableValueRange<float>(0, 1), new CustomConfigs.ConfigurationManagerAttributes { ShowRangeAsPercent = true }));
+            reprocMessage = config("Status effect - General", "Message on free proc", defaultValue: "$msg_softdeath",
+                    new ConfigDescription("&& separated messages showing on effect reproc", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings("&&") }));
+            vfxOverride = config("Status effect - General", "Visual effect prefab override", defaultValue: "", "Name of visual effect prefab available via ZNetScene.instance.GetPrefab to use instead of default cheat death effect.");
 
             protectionSeconds.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
             statusEffectLocalization.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
 
-            healthThresholdPercent = config("Status effect - Health threshold", "Health threshold in percents", defaultValue: 5f, new ConfigDescription("Percent of hp left on proc.", new AcceptableValueRange<float>(1, 100)));
+            healthThresholdPercent = config("Status effect - Health threshold", "Health threshold in percents", defaultValue: 5f, new ConfigDescription("Percent of hp left on proc.", new AcceptableValueRange<float>(1f, 100f)));
             healthThresholdValue = config("Status effect - Health threshold", "Health threshold in health points", defaultValue: 10f, "Health points left on proc.");
             healthThreshold = config("Status effect - Health threshold", "Health threshold", defaultValue: HealthThreshold.Percent, "What value to use, percentage or fixed amount.");
             healToThreshold = config("Status effect - Health threshold", "Heal to health threshold", defaultValue: true, "If damage taken while current hp is less then threshold hp will be instantly restored to threshold value." +
@@ -204,11 +213,6 @@ namespace CheatDeath
         [HarmonyPatch(typeof(Character), nameof(Character.SetHealth))]
         public static class Character_SetHealth_CheatDeathActivation
         {
-            private static float GetHealthThresholdValue(Character character)
-            {
-                return healthThreshold.Value == HealthThreshold.Percent ? character.GetMaxHealth() * (healthThresholdPercent.Value / 100f) : healthThresholdValue.Value;
-            }
-
             [HarmonyPriority(Priority.First)]
             public static void Prefix(Character __instance, ref float health)
             {
@@ -221,8 +225,13 @@ namespace CheatDeath
                 if (health > 0.1f)
                     return;
 
-                if (__instance.GetSEMan().AddStatusEffect(SE_CheatDeath.statusEffectHash) != null)
-                    health = healToThreshold.Value ? GetHealthThresholdValue(__instance) : Mathf.Min(__instance.GetHealth(), GetHealthThresholdValue(__instance));
+                bool resetTime = false;
+                if (__instance.GetSEMan().GetStatusEffect(SE_CheatDeath.statusEffectHash) is SE_CheatDeath statusEffect)
+                    if (resetTime = statusEffect.m_freeProc)
+                        health = statusEffect.GetCharacterHealth();
+
+                if (__instance.GetSEMan().AddStatusEffect(SE_CheatDeath.statusEffectHash, resetTime) is SE_CheatDeath cheatDeath)
+                    health = cheatDeath.GetCharacterHealth();
             }
         }
 

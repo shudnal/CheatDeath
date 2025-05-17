@@ -20,7 +20,23 @@ namespace CheatDeath
         public static GameObject vfx_CheatDeath;
 
         [NonSerialized]
+        public bool m_freeProc = false;
+
+        [NonSerialized]
         public bool m_initialized = false;
+
+        public void RollFreeProc() => m_freeProc = UnityEngine.Random.Range(0f, 1f) <= chanceForReproc.Value;
+
+        public override void ResetTime()
+        {
+            base.ResetTime();
+
+            RollFreeProc();
+
+            MessageCharacter();
+
+            TriggerStartEffects();
+        }
 
         public override void UpdateStatusEffect(float dt)
         {
@@ -29,7 +45,9 @@ namespace CheatDeath
 
             base.UpdateStatusEffect(dt);
 
-            m_cooldownIcon = m_time > protectionSeconds.Value;
+            if (m_cooldownIcon != (m_cooldownIcon = m_time > protectionSeconds.Value) && m_cooldownIcon && m_freeProc)
+                CooldownData.SetCooldown(m_ttl - (m_time = m_ttl));
+
             m_flashIcon = !m_cooldownIcon;
 
             if (m_cooldownIcon)
@@ -70,24 +88,39 @@ namespace CheatDeath
                     else
                         CooldownData.SetCooldown(m_ttl);
 
-                if (!string.IsNullOrEmpty(m_startMessage))
-                {
-                    List<string> messages = new List<string>();
-                    messages.AddRange(statusEffectStartMessageServer.Value.Split(new string[] { "&&" }, StringSplitOptions.RemoveEmptyEntries));
-                    messages.AddRange(statusEffectStartMessageClient.Value.Split(new string[] { "&&" }, StringSplitOptions.RemoveEmptyEntries));
-
-                    if (messages.Count == 0)
-                        m_character.Message(m_startMessageType, m_startMessage);
-                    else
-                        m_character.Message(m_startMessageType, messages[UnityEngine.Random.Range(0, messages.Count)]);
-                }
+                MessageCharacter();
 
                 TriggerStartEffects();
             }
         }
 
+        private void MessageCharacter()
+        {
+            if (!string.IsNullOrEmpty(m_startMessage))
+            {
+                List<string> messages = new List<string>();
+
+                if (m_freeProc)
+                {
+                    messages.AddRange(reprocMessage.Value.Split(new string[] { "&&" }, StringSplitOptions.RemoveEmptyEntries));
+                }
+                else
+                {
+                    messages.AddRange(statusEffectStartMessageServer.Value.Split(new string[] { "&&" }, StringSplitOptions.RemoveEmptyEntries));
+                    messages.AddRange(statusEffectStartMessageClient.Value.Split(new string[] { "&&" }, StringSplitOptions.RemoveEmptyEntries));
+                }
+
+                if (messages.Count == 0)
+                    m_character.Message(m_startMessageType, m_startMessage);
+                else
+                    m_character.Message(m_startMessageType, messages[UnityEngine.Random.Range(0, messages.Count)]);
+            }
+        }
+
         public override void Setup(Character character)
         {
+            RollFreeProc();
+
             SetStatusEffectProperties(this);
 
             m_character = character;
@@ -98,6 +131,10 @@ namespace CheatDeath
             return !character.GetSEMan().HaveStatusEffect(statusEffectHash);
         }
 
+        public float GetCharacterHealth() => healToThreshold.Value ? GetHealthThresholdValue(m_character) : Mathf.Min(m_character.GetHealth(), GetHealthThresholdValue(m_character));
+
+        private static float GetHealthThresholdValue(Character character) => healthThreshold.Value == HealthThreshold.Percent ? character.GetMaxHealth() * (healthThresholdPercent.Value / 100f) : healthThresholdValue.Value;
+
         public static void RegisterEffects()
         {
             if (!ZNetScene.instance)
@@ -105,29 +142,31 @@ namespace CheatDeath
 
             if (!(bool)vfx_CheatDeath)
             {
-                WayStone waystone = Resources.FindObjectsOfTypeAll<WayStone>().FirstOrDefault();
-                if (waystone == null)
-                    return;
+                bool defaultEffect = string.IsNullOrEmpty(vfxOverride.Value);
 
-                vfx_CheatDeath = CustomPrefabs.InitPrefabClone(ZNetScene.instance.GetPrefab("vfx_HealthUpgrade"), vfx_CheatDeathName);
-                vfx_CheatDeath.transform.localPosition = Vector3.zero;
-                for (int i = vfx_CheatDeath.transform.childCount - 1; i >= 0; i--)
+                vfx_CheatDeath = CustomPrefabs.InitPrefabClone(ZNetScene.instance.GetPrefab(defaultEffect ? "vfx_HealthUpgrade" : vfxOverride.Value), vfx_CheatDeathName);
+
+                if (defaultEffect)
                 {
-                    Transform child = vfx_CheatDeath.transform.GetChild(i);
-                    switch (child.name)
+                    vfx_CheatDeath.transform.localPosition = Vector3.zero;
+                    for (int i = vfx_CheatDeath.transform.childCount - 1; i >= 0; i--)
                     {
-                        case "Particle System _expl":
-                        case "smoke _expl":
-                        case "trails _expl":
-                        case "sfx_expl":
-                            child.parent = null;
-                            UnityEngine.Object.Destroy(child.gameObject);
-                            break;
-                        case "Particle System":
-                        case "trails":
-                        case "smoke":
-                            child.localPosition -= new Vector3(0f, 1f, 0f);
-                            break;
+                        Transform child = vfx_CheatDeath.transform.GetChild(i);
+                        switch (child.name)
+                        {
+                            case "Particle System _expl":
+                            case "smoke _expl":
+                            case "trails _expl":
+                            case "sfx_expl":
+                                child.parent = null;
+                                UnityEngine.Object.Destroy(child.gameObject);
+                                break;
+                            case "Particle System":
+                            case "trails":
+                            case "smoke":
+                                child.localPosition -= new Vector3(0f, 1f, 0f);
+                                break;
+                        }
                     }
                 }
             }

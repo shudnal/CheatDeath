@@ -1,3 +1,7 @@
+# 1.0.5
+* configurable chance to reproc effect
+* option to override vfx for effect proc (vfx should be preconfigured)
+
 # 1.0.4
 * patch 0.220.3
 * ServerSync updated
