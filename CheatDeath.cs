@@ -14,7 +14,7 @@ namespace CheatDeath
     {
         public const string pluginID = "shudnal.CheatDeath";
         public const string pluginName = "Cheat Death";
-        public const string pluginVersion = "1.0.5";
+        public const string pluginVersion = "1.0.6";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 
@@ -51,7 +51,18 @@ namespace CheatDeath
         internal static ConfigEntry<float> addMaxCarryWeight;
         internal static ConfigEntry<float> maxMaxFallSpeed;
         internal static ConfigEntry<float> fallDamageModifier;
-        
+
+        internal static ConfigEntry<bool> postProtectionEnabled;
+        internal static ConfigEntry<float> postProtectionLength;
+        internal static ConfigEntry<HitData.DamageModifier> postProtectionProtectionModifier;
+        internal static ConfigEntry<HitData.DamageType> postProtectionProtectionDamageType;
+        internal static ConfigEntry<float> postProtectionStaminaModifier;
+        internal static ConfigEntry<float> postProtectionHealthPerSecond;
+        internal static ConfigEntry<float> postProtectionAddMaxCarryWeight;
+        internal static ConfigEntry<float> postProtectionMaxFallSpeed;
+        internal static ConfigEntry<float> postProtectionFallDamageModifier;
+        internal static ConfigEntry<string> postProtectionStatusEffect;
+
         public enum CooldownTime
         {
             WorldTime,
@@ -93,7 +104,7 @@ namespace CheatDeath
                                                                                                           "\nGlobal time - calculate from real world time");
             cooldown = config("Status effect - Cooldown", "Cooldown", defaultValue: 600, "Cooldown to be set after proc");
             
-            cooldown.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
+            cooldown.SettingChanged += UpdateConfigurableValues;
 
             protectionSeconds = config("Status effect - General", "Protection seconds", defaultValue: 10f, "Seconds of protection after activation");
             statusEffectLocalization = config("Status effect - General", "Name", defaultValue: "Cheat death", "Name of status effect");
@@ -109,8 +120,8 @@ namespace CheatDeath
                     new ConfigDescription("&& separated messages showing on effect reproc", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings("&&") }));
             vfxOverride = config("Status effect - General", "Visual effect prefab override", defaultValue: "", "Name of visual effect prefab available via ZNetScene.instance.GetPrefab to use instead of default cheat death effect.");
 
-            protectionSeconds.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
-            statusEffectLocalization.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
+            protectionSeconds.SettingChanged += UpdateConfigurableValues;
+            statusEffectLocalization.SettingChanged += UpdateConfigurableValues;
 
             healthThresholdPercent = config("Status effect - Health threshold", "Health threshold in percents", defaultValue: 5f, new ConfigDescription("Percent of hp left on proc.", new AcceptableValueRange<float>(1f, 100f)));
             healthThresholdValue = config("Status effect - Health threshold", "Health threshold in health points", defaultValue: 10f, "Health points left on proc.");
@@ -119,26 +130,49 @@ namespace CheatDeath
                                                                                                                         "\nIf disabled then if you had more hp than threshold hp will be reduced to threshold" +
                                                                                                                         "\nand if you had less hp then threshold your HP will remain the same.");
 
-            protectionModifier = config("Status effect - Protection", "Damage modifier", defaultValue: HitData.DamageModifier.Resistant, "Resistant = 50% VeryResistant = 75%");
+            protectionModifier = config("Status effect - Protection", "Damage modifier", defaultValue: HitData.DamageModifier.Resistant, "Resistant = -50% VeryResistant = -75%\nWeak = +50% VeryWeak = +100%");
             protectionDamageType = config("Status effect - Protection", "Damage types", defaultValue: (HitData.DamageType)999, "Set type of damage to be protected from");
             fallDamageModifier = config("Status effect - Protection", "Fall damage protection", defaultValue: -0.75f, "Multiplier of fall damage");
             maxMaxFallSpeed = config("Status effect - Protection", "Max fall speed", defaultValue: 6f, "Slow Fall given by Feather Cape is 5.");
             staminaModifier = config("Status effect - Protection", "Movement stamina modifier", defaultValue: -0.75f, "Multiplier of jump and run stamina drain");
-            healthOverTime = config("Status effect - Protection", "Health over time", defaultValue: 0f, "Amount of health to be healed in protection duration");
-            healthPerSecond = config("Status effect - Protection", "Health per second", defaultValue: 1f, "Health per second while protection is active");
+            healthOverTime = config("Status effect - Protection", "Health over time", defaultValue: 25f, "Amount of health to be healed in protection duration");
+            healthPerSecond = config("Status effect - Protection", "Health per second", defaultValue: 5f, "Health per second while protection is active");
             addMaxCarryWeight = config("Status effect - Protection", "Add max carry weight", defaultValue: 50f, "Amount of max carry weight added while protection is active");
 
-            protectionModifier.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
-            protectionDamageType.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
-            fallDamageModifier.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
-            maxMaxFallSpeed.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
-            staminaModifier.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
-            healthOverTime.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
-            healthPerSecond.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
-            addMaxCarryWeight.SettingChanged += (sender, args) => SE_CheatDeath.UpdateConfigurableValues();
+            protectionModifier.SettingChanged += UpdateConfigurableValues;
+            protectionDamageType.SettingChanged += UpdateConfigurableValues;
+            fallDamageModifier.SettingChanged += UpdateConfigurableValues;
+            maxMaxFallSpeed.SettingChanged += UpdateConfigurableValues;
+            staminaModifier.SettingChanged += UpdateConfigurableValues;
+            healthOverTime.SettingChanged += UpdateConfigurableValues;
+            healthPerSecond.SettingChanged += UpdateConfigurableValues;
+            addMaxCarryWeight.SettingChanged += UpdateConfigurableValues;
+
+            postProtectionProtectionModifier = config("Status effect - Post protection", "Damage modifier", defaultValue: HitData.DamageModifier.Normal, "Resistant = -50% VeryResistant = -75%\nWeak = +50% VeryWeak = +100%");
+            postProtectionProtectionDamageType = config("Status effect - Post protection", "Damage types", defaultValue: (HitData.DamageType)0, "Set type of damage");
+            postProtectionFallDamageModifier = config("Status effect - Post protection", "Fall damage protection", defaultValue: -0.25f, "Multiplier of fall damage");
+            postProtectionMaxFallSpeed = config("Status effect - Post protection", "Max fall speed", defaultValue: 7f, "Slow Fall given by Feather Cape is 5.");
+            postProtectionStaminaModifier = config("Status effect - Post protection", "Movement stamina modifier", defaultValue: -0.25f, "Multiplier of jump and run stamina drain");
+            postProtectionHealthPerSecond = config("Status effect - Post protection", "Health per second", defaultValue: 2f, "Health per second while post protection is active");
+            postProtectionAddMaxCarryWeight = config("Status effect - Post protection", "Add max carry weight", defaultValue: 25f, "Amount of max carry weight added while post protection is active");
+            postProtectionLength = config("Status effect - Post protection", "Length", defaultValue: 60f, "Time after main effect end when post protection should be active");
+            postProtectionEnabled = config("Status effect - Post protection", "Enabled", defaultValue: true, "Enable post protection period after main effect is ended");
+            postProtectionStatusEffect = config("Status effect - Post protection", "Status effect to inflict", defaultValue: "", "What status effect should be inflicted when protection is over.");
+
+            postProtectionProtectionModifier.SettingChanged += UpdateConfigurableValues;
+            postProtectionProtectionDamageType.SettingChanged += UpdateConfigurableValues;
+            postProtectionFallDamageModifier.SettingChanged += UpdateConfigurableValues;
+            postProtectionMaxFallSpeed.SettingChanged += UpdateConfigurableValues;
+            postProtectionStaminaModifier.SettingChanged += UpdateConfigurableValues;
+            postProtectionHealthPerSecond.SettingChanged += UpdateConfigurableValues;
+            postProtectionAddMaxCarryWeight.SettingChanged += UpdateConfigurableValues;
+            postProtectionLength.SettingChanged += UpdateConfigurableValues;
+            postProtectionEnabled.SettingChanged += UpdateConfigurableValues;
 
             InitCommands();
         }
+
+        private void UpdateConfigurableValues(object sender, System.EventArgs args) => SE_CheatDeath.UpdateConfigurableValues();
 
         private void OnDestroy()
         {

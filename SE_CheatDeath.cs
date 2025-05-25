@@ -19,6 +19,9 @@ namespace CheatDeath
 
         public static GameObject vfx_CheatDeath;
 
+        public static List<HitData.DamageModPair> m_modsActive = new List<HitData.DamageModPair>();
+        public static List<HitData.DamageModPair> m_modsPostProtection = new List<HitData.DamageModPair>();
+
         [NonSerialized]
         public bool m_freeProc = false;
 
@@ -45,24 +48,46 @@ namespace CheatDeath
 
             base.UpdateStatusEffect(dt);
 
-            if (m_cooldownIcon != (m_cooldownIcon = m_time > protectionSeconds.Value) && m_cooldownIcon && m_freeProc)
-                CooldownData.SetCooldown(m_ttl - (m_time = m_ttl));
+            if (m_cooldownIcon != (m_cooldownIcon = m_time > protectionSeconds.Value) && m_cooldownIcon)
+            {
+                if (m_freeProc)
+                    CooldownData.SetCooldown(m_ttl - (m_time = m_ttl));
+
+                if (!string.IsNullOrWhiteSpace(postProtectionStatusEffect.Value))
+                    m_character?.GetSEMan().AddStatusEffect(postProtectionStatusEffect.Value.GetStableHashCode());
+            }
 
             m_flashIcon = !m_cooldownIcon;
 
             if (m_cooldownIcon)
             {
-                m_runStaminaDrainModifier = 0f;
-                m_jumpStaminaUseModifier = 0f;
-                
-                m_fallDamageModifier = 0f;
-                m_maxMaxFallSpeed = 0f;
-                
-                m_healthOverTime = 0;
-                m_healthPerTick = 0;
-                m_addMaxCarryWeight = 0;
+                if (postProtectionEnabled.Value && m_time < postProtectionLength.Value + protectionSeconds.Value)
+                {
+                    m_runStaminaDrainModifier = postProtectionStaminaModifier.Value;
+                    m_jumpStaminaUseModifier = postProtectionStaminaModifier.Value;
 
-                m_mods.Clear();
+                    m_fallDamageModifier = postProtectionFallDamageModifier.Value;
+                    m_maxMaxFallSpeed = postProtectionMaxFallSpeed.Value;
+
+                    m_healthPerTick = postProtectionHealthPerSecond.Value;
+                    m_addMaxCarryWeight = postProtectionAddMaxCarryWeight.Value;
+
+                    m_mods = m_modsPostProtection;
+                }
+                else
+                {
+                    m_runStaminaDrainModifier = 0f;
+                    m_jumpStaminaUseModifier = 0f;
+
+                    m_fallDamageModifier = 0f;
+                    m_maxMaxFallSpeed = 0f;
+
+                    m_healthOverTime = 0;
+                    m_healthPerTick = 0;
+                    m_addMaxCarryWeight = 0;
+
+                    m_mods.Clear();
+                }
             }
 
             if (!m_initialized && m_character != null)
@@ -215,16 +240,27 @@ namespace CheatDeath
 
             statusEffect.m_addMaxCarryWeight = addMaxCarryWeight.Value;
 
-            statusEffect.m_mods.Clear();
-
+            m_modsActive.Clear();
             Enum.GetValues(typeof(HitData.DamageType)).Cast<HitData.DamageType>().Where(e => protectionDamageType.Value.HasFlag(e)).Do(damageType =>
             {
-                statusEffect.m_mods.Add(new HitData.DamageModPair()
+                m_modsActive.Add(new HitData.DamageModPair()
                 {
                     m_type = damageType,
                     m_modifier = protectionModifier.Value
                 });
             });
+
+            m_modsPostProtection.Clear();
+            Enum.GetValues(typeof(HitData.DamageType)).Cast<HitData.DamageType>().Where(e => postProtectionProtectionDamageType.Value.HasFlag(e)).Do(damageType =>
+            {
+                m_modsPostProtection.Add(new HitData.DamageModPair()
+                {
+                    m_type = damageType,
+                    m_modifier = postProtectionProtectionModifier.Value
+                });
+            });
+
+            statusEffect.m_mods = m_modsActive;
         }
 
         [HarmonyPatch(typeof(ObjectDB), nameof(ObjectDB.Awake))]

@@ -12,7 +12,7 @@ You can configure:
 * health threshold (percent or fixed amount) to which your hp will be saved/restored on proc
 * fatal blow message picked from config value
 
-Temporarty protection config:
+Temporary protection config:
 * damage modifiers type (resistant, very resistant, immune, etc.)
 * damage resistance type (blunt, pierce, etc.)
 * fall damage modifier and max fall speed
@@ -20,6 +20,16 @@ Temporarty protection config:
 * max carry weight added
 * health over time (how much health will be restored in protection duration)
 * health per second (while protection is active)
+
+Post protection config:
+* damage modifiers type (resistant, very resistant, immune, etc.)
+* damage resistance type (blunt, pierce, etc.)
+* fall damage modifier and max fall speed
+* stamina consumption on jump and run
+* max carry weight added
+* health per second (for limited duration)
+* default duration is 1 minute
+* you can also configure custom status effect to apply when main protection is over
 
 All config values are server synced.
 

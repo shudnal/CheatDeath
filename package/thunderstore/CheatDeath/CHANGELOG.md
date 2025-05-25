@@ -1,3 +1,8 @@
+# 1.0.6
+* configurable post protection period (by default it is less powerful buff for 1 min after protection is over)
+* option to apply other status effect when protection is over
+* default configs changed to increase healing power of main protection
+
 # 1.0.5
 * configurable chance to reproc effect
 * option to override vfx for effect proc (vfx should be preconfigured)
