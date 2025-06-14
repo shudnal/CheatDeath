@@ -14,7 +14,7 @@ namespace CheatDeath
     {
         public const string pluginID = "shudnal.CheatDeath";
         public const string pluginName = "Cheat Death";
-        public const string pluginVersion = "1.0.6";
+        public const string pluginVersion = "1.0.7";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 
@@ -37,6 +37,7 @@ namespace CheatDeath
         internal static ConfigEntry<float> chanceForReproc;
         internal static ConfigEntry<string> reprocMessage;
         internal static ConfigEntry<string> vfxOverride;
+        internal static ConfigEntry<float> procHealthThreshold;
 
         internal static ConfigEntry<bool> healToThreshold;
         internal static ConfigEntry<float> healthThresholdPercent;
@@ -119,6 +120,9 @@ namespace CheatDeath
             reprocMessage = config("Status effect - General", "Message on free proc", defaultValue: "$msg_softdeath",
                     new ConfigDescription("&& separated messages showing on effect reproc", null, new CustomConfigs.ConfigurationManagerAttributes { CustomDrawer = CustomConfigs.DrawSeparatedStrings("&&") }));
             vfxOverride = config("Status effect - General", "Visual effect prefab override", defaultValue: "", "Name of visual effect prefab available via ZNetScene.instance.GetPrefab to use instead of default cheat death effect.");
+            procHealthThreshold = config("Status effect - General", "Proc health threshold", defaultValue: 0f,
+                    new ConfigDescription("Cheat Death will only proc if your current health is above the set percentage.",
+                    new AcceptableValueRange<float>(0, 1), new CustomConfigs.ConfigurationManagerAttributes { ShowRangeAsPercent = true }));
 
             protectionSeconds.SettingChanged += UpdateConfigurableValues;
             statusEffectLocalization.SettingChanged += UpdateConfigurableValues;
@@ -257,6 +261,9 @@ namespace CheatDeath
                     return;
 
                 if (health > 0.1f)
+                    return;
+
+                if (__instance.GetHealthPercentage() < procHealthThreshold.Value)
                     return;
 
                 bool resetTime = false;

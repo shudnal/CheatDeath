@@ -1,3 +1,6 @@
+# 1.0.7
+* new config option to set current health percentage to proc Cheat Death only in one-hit situations
+
 # 1.0.6
 * configurable post protection period (by default it is less powerful buff for 1 min after protection is over)
 * option to apply other status effect when protection is over
