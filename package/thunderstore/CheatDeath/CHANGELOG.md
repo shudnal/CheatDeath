@@ -1,3 +1,9 @@
+# 1.0.8
+* Updated for the Valheim 1.0.7 release.
+* Completed the migration to the standalone ConditionalConfigSync dependency.
+* Updated required dependencies to BepInExPack Valheim 5.4.2350 and ConditionalConfigSync 1.0.5.
+* Keep damage-protection templates intact when an active protection effect expires.
+
 # 1.0.7
 * new config option to set current health percentage to proc Cheat Death only in one-hit situations
 

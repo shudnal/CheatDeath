@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +18,8 @@ namespace CheatDeath
         public static Sprite iconStatusEffect;
 
         public static GameObject vfx_CheatDeath;
+
+        private static readonly List<HitData.DamageModPair> s_noDamageModifiers = new List<HitData.DamageModPair>();
 
         public static List<HitData.DamageModPair> m_modsActive = new List<HitData.DamageModPair>();
         public static List<HitData.DamageModPair> m_modsPostProtection = new List<HitData.DamageModPair>();
@@ -86,7 +88,7 @@ namespace CheatDeath
                     m_healthPerTick = 0;
                     m_addMaxCarryWeight = 0;
 
-                    m_mods.Clear();
+                    m_mods = s_noDamageModifiers;
                 }
             }
 

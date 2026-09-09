@@ -1,7 +1,7 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using ServerSync;
+using ConditionalConfigSync;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -10,11 +10,12 @@ using UnityEngine;
 namespace CheatDeath
 {
     [BepInPlugin(pluginID, pluginName, pluginVersion)]
+    [BepInDependency("_shudnal.ConditionalConfigSync", "1.0.5")]
     public class CheatDeath : BaseUnityPlugin
     {
         public const string pluginID = "shudnal.CheatDeath";
         public const string pluginName = "Cheat Death";
-        public const string pluginVersion = "1.0.7";
+        public const string pluginVersion = "1.0.8";
 
         private readonly Harmony harmony = new Harmony(pluginID);
 
@@ -94,9 +95,9 @@ namespace CheatDeath
 
         public void ConfigInit()
         {
-            config("General", "NexusID", 2854, "Nexus mod ID for updates", false);
 
             modEnabled = Config.Bind("General", "Enabled", defaultValue: true, "Enable the mod.");
+            configSync.AddConfigEntry(modEnabled, ConfigSyncMode.AlwaysClientControlled, serverControlledByDefault: false);
             configLocked = config("General", "Lock Configuration", defaultValue: true, "Configuration is locked and can be changed by server admins only.");
             loggingEnabled = config("General", "Logging enabled", defaultValue: false, "Enable logging. [Not Synced with Server]", false);
 
@@ -193,7 +194,7 @@ namespace CheatDeath
                 if (Player.m_localPlayer && Player.m_localPlayer.GetSEMan().HaveStatusEffect(SE_CheatDeath.statusEffectHash))
                     UpdateStatusEffectTime(Player.m_localPlayer.GetSEMan().GetStatusEffect(SE_CheatDeath.statusEffectHash));
 
-            }, isCheat: true);
+            }, isCheat: true, hideBehindDevCommands: true);
         }
         private void LoadIcons()
         {
@@ -240,8 +241,7 @@ namespace CheatDeath
         {
             ConfigEntry<T> configEntry = Config.Bind(group, name, defaultValue, description);
 
-            SyncedConfigEntry<T> syncedConfigEntry = configSync.AddConfigEntry(configEntry);
-            syncedConfigEntry.SynchronizedConfig = synchronizedSetting;
+            configSync.AddConfigEntry(configEntry, ConfigSyncMode.Conditional, serverControlledByDefault: synchronizedSetting);
 
             return configEntry;
         }
